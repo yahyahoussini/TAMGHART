@@ -1,4 +1,10 @@
 export type Variant = { id: string; name: string; options: string[] };
+export type Category = {
+  id: string;
+  name: string;
+  description: string | null;
+  created_at?: string | null;
+};
 export type Product = {
   id: string; slug: string; name: string; subtitle?: string; price: number; currency: "MAD";
   images: string[]; // placeholder URLs
@@ -7,4 +13,4 @@ export type Product = {
   tags: string[]; volume?: string; inStock: boolean;
 };
 export type CartItem = { productId: string; variantSelections?: Record<string, string>; qty: number; unitPrice: number };
-export type Order = { id: string; code: string; phone: string; status: "received"|"packed"|"shipped"|"out_for_delivery"|"delivered"; items: CartItem[]; totals: { subtotal: number; shipping: number; tax: number; total: number } };
+export type Order = { id:string; code: string; phone: string; status: "received"|"packed"|"shipped"|"out_for_delivery"|"delivered"; items: CartItem[]; totals: { subtotal: number; shipping: number; tax: number; total: number } };
