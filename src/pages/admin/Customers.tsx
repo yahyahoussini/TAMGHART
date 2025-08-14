@@ -45,7 +45,6 @@ export default function Customers() {
   const [search, setSearch] = useState("");
   const [filteredCustomers, setFilteredCustomers] = useState(mockCustomers);
 
-  // Basic search functionality
   useEffect(() => {
     if (search) {
       setFilteredCustomers(
