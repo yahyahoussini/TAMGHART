@@ -7,6 +7,7 @@ import {
   Settings,
   LogOut,
   BarChart3,
+  Tag,
 } from "lucide-react";
 import {
   Sidebar,
@@ -33,6 +34,11 @@ const navigationItems = [
     title: "Products",
     url: "/admin/products",
     icon: Package,
+  },
+  {
+    title: "Categories",
+    url: "/admin/categories",
+    icon: Tag,
   },
   {
     title: "Orders",

@@ -24,7 +24,7 @@ export default function Products() {
       setFilteredProducts(
         products.filter(product =>
           product.name.toLowerCase().includes(search.toLowerCase()) ||
-          product.tags.some(tag => tag.toLowerCase().includes(search.toLowerCase()))
+          product.categories.some(cat => cat.name.toLowerCase().includes(search.toLowerCase()))
         )
       );
     } else {
@@ -94,7 +94,7 @@ export default function Products() {
                   <TableHead>Product</TableHead>
                   <TableHead>Price</TableHead>
                   <TableHead>Stock</TableHead>
-                  <TableHead>Tags</TableHead>
+                  <TableHead>Categories</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -135,14 +135,14 @@ export default function Products() {
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
-                          {product.tags.slice(0, 2).map((tag, index) => (
+                          {product.categories.slice(0, 2).map((category, index) => (
                             <Badge key={index} variant="outline" className="text-xs">
-                              {tag}
+                              {category.name}
                             </Badge>
                           ))}
-                          {product.tags.length > 2 && (
+                          {product.categories.length > 2 && (
                             <Badge variant="outline" className="text-xs">
-                              +{product.tags.length - 2}
+                              +{product.categories.length - 2}
                             </Badge>
                           )}
                         </div>

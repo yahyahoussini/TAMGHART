@@ -1,6 +1,22 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import type { Product } from '@/types/models';
+import type { Product, Variant } from '@/types/models';
+import { Category } from './useCategories';
+
+type ProductFromSupabase = {
+  id: string;
+  slug: string;
+  name: string;
+  subtitle?: string;
+  price: string;
+  images: string[];
+  variants: Variant[];
+  description: string;
+  specs: string[];
+  categories: Category[];
+  volume?: string;
+  in_stock: boolean;
+};
 
 export function useProducts() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -16,24 +32,24 @@ export function useProducts() {
       setLoading(true);
       const { data, error } = await supabase
         .from('products')
-        .select('*')
+        .select('*, categories(*)')
         .eq('in_stock', true);
 
       if (error) throw error;
 
       // Transform database format to match our Product type
-      const transformedProducts = (data || []).map(item => ({
+      const transformedProducts = (data as ProductFromSupabase[] || []).map(item => ({
         id: item.id,
         slug: item.slug,
         name: item.name,
         subtitle: item.subtitle || undefined,
-        price: parseFloat(item.price as any),
+        price: parseFloat(item.price),
         currency: "MAD" as const,
         images: item.images || [],
-        variants: item.variants as any,
+        variants: item.variants,
         description: item.description,
         specs: item.specs || [],
-        tags: item.tags || [],
+        categories: item.categories || [],
         volume: item.volume || undefined,
         inStock: item.in_stock || false,
       }));
@@ -65,7 +81,7 @@ export function useProduct(slug: string) {
       setLoading(true);
       const { data, error } = await supabase
         .from('products')
-        .select('*')
+        .select('*, categories(*)')
         .eq('slug', productSlug)
         .single();
 
@@ -77,13 +93,13 @@ export function useProduct(slug: string) {
         slug: data.slug,
         name: data.name,
         subtitle: data.subtitle || undefined,
-        price: parseFloat(data.price as any),
+        price: parseFloat(data.price),
         currency: "MAD" as const,
         images: data.images || [],
-        variants: data.variants as any,
+        variants: data.variants,
         description: data.description,
         specs: data.specs || [],
-        tags: data.tags || [],
+        categories: data.categories || [],
         volume: data.volume || undefined,
         inStock: data.in_stock || false,
       };
