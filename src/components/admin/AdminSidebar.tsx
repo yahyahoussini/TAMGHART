@@ -7,6 +7,7 @@ import {
   Settings,
   LogOut,
   BarChart3,
+  Ticket,
 } from "lucide-react";
 import {
   Sidebar,
@@ -38,6 +39,11 @@ const navigationItems = [
     title: "Orders",
     url: "/admin/orders",
     icon: ShoppingCart,
+  },
+  {
+    title: "Promo Codes",
+    url: "/admin/promos",
+    icon: Ticket,
   },
   {
     title: "Customers",

@@ -12,7 +12,9 @@ import { Separator } from "@/components/ui/separator";
 import { useCart } from "@/state/cart";
 import { useProducts } from "@/hooks/useProducts";
 import { useOrders } from "@/hooks/useOrders";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import type { Promo } from "@/types/models";
 import { track } from "@/lib/analytics";
 import { Minus, Plus, X } from "lucide-react";
 
@@ -24,13 +26,6 @@ function formatMAD(n: number) {
     maximumFractionDigits: 0 
   }).format(n).replace("MAD", "").trim() + " MAD";
 }
-
-// Promo codes
-const PROMOS = [
-  { code: "WELCOME10", type: "percent" as const, value: 10, minSubtotal: 299 },
-  { code: "TUSSNA50", type: "fixed" as const, value: 50, minSubtotal: 399 },
-  { code: "FREESHIP", type: "freeship" as const, value: 0, minSubtotal: 399 },
-];
 
 const CITIES = ["Casablanca","Rabat","Marrakech","Fes","Tangier","Agadir","Oujda","Meknes","Kenitra","Tetouan"];
 
@@ -91,48 +86,54 @@ export default function Cart() {
 
   // Promo state
   const [promoInput, setPromoInput] = useState("");
-  const [appliedPromo, setAppliedPromo] = useState<null | { code: string; type: "percent"|"fixed"|"freeship"; value: number; minSubtotal: number }>(null);
+  const [appliedPromo, setAppliedPromo] = useState<{ promo: Promo, discount: number } | null>(null);
   const [promoError, setPromoError] = useState<string | null>(null);
+  const [promoLoading, setPromoLoading] = useState(false);
 
   const subtotalMAD = subtotal; // prices are already MAD (spec)
 
   const { discount, shipping, vatIncluded, total } = useMemo(() => {
+    const discount = appliedPromo?.discount || 0;
     const sub = subtotalMAD;
-    let discount = 0;
-    const code = appliedPromo?.code;
-    if (appliedPromo) {
-      if (sub < appliedPromo.minSubtotal) {
-        // if subtotal dropped below minimum, remove promo automatically
-        discount = 0;
-      } else if (appliedPromo.type === "percent") {
-        discount = Math.floor((sub * appliedPromo.value) / 100);
-      } else if (appliedPromo.type === "fixed") {
-        discount = Math.min(appliedPromo.value, sub);
-      } else {
-        discount = 0;
-      }
-    }
     const afterPromo = Math.max(0, sub - discount);
+
     let shipping = afterPromo >= 399 ? 0 : 39;
-    if (code === "FREESHIP" && afterPromo >= 399) shipping = 0;
-    if (code === "FREESHIP" && afterPromo < 399) shipping = 39; // respect min subtotal
+    if (appliedPromo?.promo?.type === "freeship") {
+      shipping = 0;
+    }
+
     const vatIncluded = Math.round(afterPromo * (20 / 120));
     const total = afterPromo + shipping;
     return { discount, shipping, vatIncluded, total };
   }, [subtotalMAD, appliedPromo]);
 
   const freeThreshold = 399;
-  const progress = Math.min(1, Math.max(0, (subtotalMAD - (appliedPromo ? discount : 0)) / freeThreshold));
+  const progress = Math.min(1, Math.max(0, (subtotalMAD - discount) / freeThreshold));
 
-  const applyPromo = () => {
+  const applyPromo = async () => {
     const code = promoInput.trim().toUpperCase();
+    if (!code) return;
+
+    setPromoLoading(true);
     setPromoError(null);
-    const found = PROMOS.find(p => p.code === code);
-    if (!found) { setPromoError("Invalid code"); return; }
-    if (subtotalMAD < (found.minSubtotal ?? 0)) { setPromoError(`Min ${found.minSubtotal} MAD subtotal required`); return; }
-    setAppliedPromo(found);
-    toast({ title: "Promo applied", description: code });
-    track({ name: "promo_apply", payload: { code } });
+    try {
+      const { data, error } = await supabase.functions.invoke("validate-promo", {
+        body: { code, subtotal: subtotalMAD },
+      });
+
+      if (error) throw new Error(error.message);
+      if (data.error) throw new Error(data.error);
+
+      setAppliedPromo(data);
+      toast({ title: "Promo applied", description: code });
+      track({ name: "promo_apply", payload: { code } });
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Invalid promo code";
+      setPromoError(errorMessage);
+      setAppliedPromo(null);
+    } finally {
+      setPromoLoading(false);
+    }
   };
 
   const removePromo = () => setAppliedPromo(null);

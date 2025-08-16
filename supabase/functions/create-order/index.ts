@@ -37,7 +37,13 @@ serve(async (req) => {
     if (orderError) throw orderError;
 
     // 2. Create order items
-    const orderItems = orderData.items.map((item: any) => ({
+    const orderItems = orderData.items.map((item: {
+      productId: string;
+      productName: string;
+      variantSelections: Record<string, string>;
+      qty: number;
+      unitPrice: number;
+    }) => ({
       order_id: order.id,
       product_id: item.productId,
       product_name: item.productName,

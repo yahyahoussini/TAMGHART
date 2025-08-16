@@ -12,14 +12,15 @@ import {
   DollarSign,
   Eye
 } from "lucide-react";
+import type { Order, Product } from "@/types/models";
 
 interface DashboardStats {
   totalProducts: number;
   totalOrders: number;
   totalCustomers: number;
   totalRevenue: number;
-  recentOrders: any[];
-  lowStockProducts: any[];
+  recentOrders: Order[];
+  lowStockProducts: Product[];
 }
 
 export default function Dashboard() {

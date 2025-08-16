@@ -8,3 +8,11 @@ export type Product = {
 };
 export type CartItem = { productId: string; variantSelections?: Record<string, string>; qty: number; unitPrice: number };
 export type Order = { id: string; code: string; phone: string; status: "received"|"packed"|"shipped"|"out_for_delivery"|"delivered"; items: CartItem[]; totals: { subtotal: number; shipping: number; tax: number; total: number } };
+export type Promo = {
+  id: string;
+  code: string;
+  type: 'percent' | 'fixed' | 'freeship';
+  value: number;
+  min_purchase_amount: number;
+  is_active: boolean;
+};
