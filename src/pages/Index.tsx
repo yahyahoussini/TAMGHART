@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 
 const Index = () => {
   return (
@@ -9,8 +10,12 @@ const Index = () => {
             <h1 className="font-head text-3xl md:text-5xl font-semibold mb-4">Votre boutique bio‑cosmétiques est presque prête</h1>
             <p className="text-muted-foreground mb-6">Répondez à quelques questions pour générer une belle page d'accueil adaptée à votre marque.</p>
             <div className="flex flex-wrap gap-3">
-              <Button variant="hero" size="xl" className="hover-scale">Fournir le contenu</Button>
-              <Button variant="chip" size="chip">Aperçu du thème</Button>
+              <Link to="/admin">
+                <Button variant="hero" size="xl" className="hover-scale">Fournir le contenu</Button>
+              </Link>
+              <Link to="/shop">
+                <Button variant="chip" size="chip">Aperçu du thème</Button>
+              </Link>
             </div>
           </div>
           <div className="h-56 md:h-72 rounded-card bg-secondary" aria-hidden />

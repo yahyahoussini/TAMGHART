@@ -2,12 +2,16 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { CartItem } from '@/types/models';
 
+interface OrderItemData extends CartItem {
+  productName: string;
+}
+
 interface OrderData {
   phone: string;
   email?: string;
   customerName?: string;
   address?: string;
-  items: CartItem[];
+  items: OrderItemData[];
   totals: {
     subtotal: number;
     shipping: number;
@@ -48,7 +52,7 @@ export function useOrders() {
       const orderItems = orderData.items.map(item => ({
         order_id: order.id,
         product_id: item.productId,
-        product_name: item.productId, // This should be fetched from products table
+        product_name: item.productName,
         variant_selections: item.variantSelections || {},
         quantity: item.qty,
         unit_price: item.unitPrice,

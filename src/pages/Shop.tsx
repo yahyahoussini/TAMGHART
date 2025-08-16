@@ -47,11 +47,12 @@ const Shop = () => {
     switch (filters.sort) {
       case "priceAsc": list.sort((a,b) => a.price - b.price); break;
       case "priceDesc": list.sort((a,b) => b.price - a.price); break;
-      case "new": list = list.reverse(); break; // mock newest
-      default: break; // best = default order
+      // "new" is the default sort from the API now.
+      // "best" is also a default for now.
+      default: break;
     }
     return list;
-  }, [filters, q]);
+  }, [filters, q, allProducts]);
 
   const activeCount = [
     filters.category ? 1 : 0,

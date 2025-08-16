@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import type { Product } from '@/types/models';
+import type { Product, Variant } from '@/types/models';
+import type { Json } from '@/integrations/supabase/types';
 
 export function useProducts() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -17,7 +18,8 @@ export function useProducts() {
       const { data, error } = await supabase
         .from('products')
         .select('*')
-        .eq('in_stock', true);
+        .eq('in_stock', true)
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
 
@@ -27,10 +29,10 @@ export function useProducts() {
         slug: item.slug,
         name: item.name,
         subtitle: item.subtitle || undefined,
-        price: parseFloat(item.price as any),
+        price: parseFloat(item.price as string),
         currency: "MAD" as const,
         images: item.images || [],
-        variants: item.variants as any,
+        variants: item.variants as Variant[] | undefined,
         description: item.description,
         specs: item.specs || [],
         tags: item.tags || [],
@@ -77,10 +79,10 @@ export function useProduct(slug: string) {
         slug: data.slug,
         name: data.name,
         subtitle: data.subtitle || undefined,
-        price: parseFloat(data.price as any),
+        price: parseFloat(data.price as string),
         currency: "MAD" as const,
         images: data.images || [],
-        variants: data.variants as any,
+        variants: data.variants as Variant[] | undefined,
         description: data.description,
         specs: data.specs || [],
         tags: data.tags || [],

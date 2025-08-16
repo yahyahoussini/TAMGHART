@@ -16,6 +16,7 @@ import { Star, CheckCircle2, Leaf, ShieldCheck, Plus, Minus } from "lucide-react
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useOrders } from "@/hooks/useOrders";
 
 const phoneRegex = /^\+212[5-7]\d{8}$/; // Morocco mobile/phone (simplified)
 const CodSchema = z.object({
@@ -29,32 +30,20 @@ const CodSchema = z.object({
 
 type CodForm = z.infer<typeof CodSchema>;
 
-function QuestionModal({ productName }: { productName: string }) {
-  const [open, setOpen] = useState(false);
-  const [question, setQuestion] = useState("");
-  const onSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!question.trim()) return;
-    toast({ title: "Question envoyée", description: "Nous vous répondrons rapidement." });
-    setOpen(false);
-    setQuestion("");
-  };
+function normalizePhone(p: string) {
+  const digits = p.replace(/[^\\d]/g, "");
+  if (digits.startsWith("212")) return "+" + digits;
+  if (digits.startsWith("0")) return "+212" + digits.slice(1);
+  if (digits.startsWith("+212")) return "+212" + digits.slice(4);
+  return "+212" + digits;
+}
+
+function QuestionButton({ productName }: { productName: string }) {
+  const mailto = `mailto:support@cocobloom.ma?subject=Question about ${encodeURIComponent(productName)}`;
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <Button variant="chip" size="chip" onClick={() => setOpen(true)}>Poser une question</Button>
-      <DialogContent className="rounded-[--radius-modal]">
-        <DialogHeader>
-          <DialogTitle>Question sur {productName}</DialogTitle>
-          <DialogDescription>Nous répondons généralement sous 24h.</DialogDescription>
-        </DialogHeader>
-        <form onSubmit={onSubmit} className="grid gap-3">
-          <Textarea value={question} onChange={(e)=>setQuestion(e.target.value)} placeholder="Tapez votre question..." aria-label="Votre question" />
-          <DialogFooter>
-            <Button type="submit" variant="hero" disabled={!question.trim()}>Envoyer</Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    <a href={mailto}>
+      <Button variant="chip" size="chip">Poser une question</Button>
+    </a>
   );
 }
 
@@ -69,7 +58,8 @@ const Product = () => {
   const [buyOpen, setBuyOpen] = useState(false);
   const [orderCode, setOrderCode] = useState<string | null>(null);
 
-  const { register, handleSubmit, formState: { errors, isSubmitting }, reset } = useForm<CodForm>({ resolver: zodResolver(CodSchema) });
+  const { register, handleSubmit, formState: { errors }, reset } = useForm<CodForm>({ resolver: zodResolver(CodSchema) });
+  const { createOrder, loading: isCreatingOrder } = useOrders();
 
   useEffect(() => {
     if (product) {
@@ -114,7 +104,6 @@ const Product = () => {
   }
 
   const price = `${product.price} MAD`;
-  const rating = { value: 4.6, count: 128 }; // mock
 
   const canAdd = product.variants ? product.variants.every(v => selections[v.id]) : true;
 
@@ -149,11 +138,43 @@ const Product = () => {
   };
 
   const submitCod = async (data: CodForm) => {
-    await new Promise(r => setTimeout(r, 500)); // mock
-    const code = `CB${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
-    setOrderCode(code);
-    track({ name: "cod_submit", payload: { productId: product.id, orderCode: code } });
-    reset();
+    track({ name: "buy_now_submit", payload: { productId: product.id } });
+
+    const subtotal = product.price * qty;
+    const shipping = subtotal >= 399 ? 0 : 39; // Same logic as cart
+    const total = subtotal + shipping;
+
+    const result = await createOrder({
+      phone: normalizePhone(data.phone),
+      customerName: data.fullName,
+      address: `${data.address}, ${data.city}`,
+      items: [{
+        productId: product.id,
+        productName: product.name,
+        qty: qty,
+        unitPrice: product.price,
+        variantSelections: selections,
+      }],
+      totals: {
+        subtotal: subtotal,
+        shipping: shipping,
+        tax: 0, // Simplified for buy now
+        total: total,
+      },
+    });
+
+    if (result.success && result.orderCode) {
+      setOrderCode(result.orderCode);
+      track({ name: "cod_submit_success", payload: { orderCode: result.orderCode, itemsCount: qty, total } });
+      toast({ title: "Order placed!", description: `Your order code is ${result.orderCode}` });
+      reset();
+    } else {
+      toast({
+        title: "Order failed",
+        description: result.error || "Could not place the order. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const jsonLd = {
@@ -167,11 +188,6 @@ const Product = () => {
       priceCurrency: product.currency,
       price: product.price,
       availability: product.inStock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
-    },
-    aggregateRating: {
-      "@type": "AggregateRating",
-      ratingValue: rating.value,
-      reviewCount: rating.count,
     },
   };
 
@@ -211,12 +227,7 @@ const Product = () => {
           </h1>
 
           {/* Rating + price */}
-          <div className="mt-2 flex items-center justify-between">
-            <div className="flex items-center gap-1 text-sm">
-              <Star className="text-accent" size={16} />
-              <span>{rating.value}</span>
-              <span className="text-muted-foreground">({rating.count})</span>
-            </div>
+          <div className="mt-2 flex items-center justify-end">
             <div className="text-2xl font-semibold">{price}</div>
           </div>
 
@@ -320,14 +331,12 @@ const Product = () => {
           <li>Massage gently until absorbed.</li>
           <li>Follow with moisturizer and SPF AM.</li>
         </ol>
-        <div className="mt-3 text-sm"><a className="underline" href="#">Compatible Routine</a></div>
       </section>
 
       {/* Routine builder / cross-sell */}
       <section className="mt-10">
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-head text-xl font-semibold">Pairs well with</h2>
-          <Button variant="chip" size="chip">Add bundle</Button>
         </div>
         <div className="flex gap-4 overflow-x-auto pb-2">
           {products.filter(p => p.id !== product.id).slice(0,3).map(p => (
@@ -353,7 +362,7 @@ const Product = () => {
         <h2 className="font-head text-xl font-semibold mb-3">Q&A</h2>
         <div className="rounded-card border p-4 flex items-center justify-between gap-3">
           <div className="text-sm text-muted-foreground">Have a question about this product?</div>
-          <QuestionModal productName={product.name} />
+          <QuestionButton productName={product.name} />
         </div>
       </section>
 
@@ -444,8 +453,8 @@ const Product = () => {
               </div>
 
               <DialogFooter>
-                <Button type="submit" variant="hero" disabled={isSubmitting || !canAdd}>
-                  {isSubmitting ? "Submitting…" : "Place Order"}
+                <Button type="submit" variant="hero" disabled={isCreatingOrder || !canAdd}>
+                  {isCreatingOrder ? "Submitting…" : "Place Order"}
                 </Button>
               </DialogFooter>
             </form>

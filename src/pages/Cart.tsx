@@ -10,7 +10,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { useCart } from "@/state/cart";
-import { products } from "@/data/products";
+import { useProducts } from "@/hooks/useProducts";
+import { useOrders } from "@/hooks/useOrders";
 import { toast } from "@/hooks/use-toast";
 import { track } from "@/lib/analytics";
 import { Minus, Plus, X } from "lucide-react";
@@ -33,7 +34,7 @@ const PROMOS = [
 
 const CITIES = ["Casablanca","Rabat","Marrakech","Fes","Tangier","Agadir","Oujda","Meknes","Kenitra","Tetouan"];
 
-const phoneRegex = /^(?:\+212|0)([ \-]?)\d{9}$/;
+const phoneRegex = /^(?:\+212|0)([ -]?)\d{9}$/;
 const CodSchema = z.object({
   fullName: z.string().min(2),
   phone: z.string().regex(phoneRegex),
@@ -56,6 +57,7 @@ function normalizePhone(p: string) {
 
 export default function Cart() {
   const { items, itemsCount, subtotal, setQty, remove, clear } = useCart();
+  const { products, loading: productsLoading } = useProducts();
 
   // Enrich items with product data
   const enriched = useMemo(() => items.map(it => {
@@ -67,7 +69,7 @@ export default function Cart() {
       image: p?.images?.[0] || "/placeholder.svg",
       inStock: p?.inStock ?? true,
     };
-  }), [items]);
+  }), [items, products]);
 
   useEffect(() => {
     document.title = "Cart — Coco Bloom";
@@ -123,25 +125,53 @@ export default function Cart() {
     const found = PROMOS.find(p => p.code === code);
     if (!found) { setPromoError("Invalid code"); return; }
     if (subtotalMAD < (found.minSubtotal ?? 0)) { setPromoError(`Min ${found.minSubtotal} MAD subtotal required`); return; }
-    setAppliedPromo(found as any);
+    setAppliedPromo(found);
     toast({ title: "Promo applied", description: code });
     track({ name: "promo_apply", payload: { code } });
   };
 
   const removePromo = () => setAppliedPromo(null);
 
-  const { register, handleSubmit, formState: { errors, isSubmitting }, reset, watch, setValue } = useForm<CodForm>({ resolver: zodResolver(CodSchema), defaultValues: { consent: true } as any });
+  const { register, handleSubmit, formState: { errors }, reset, watch } = useForm<CodForm>({ resolver: zodResolver(CodSchema), defaultValues: { consent: true } });
+  const { createOrder, loading: isCreatingOrder } = useOrders();
 
   const onCheckout = async (data: CodForm) => {
     track({ name: "checkout_click", payload: { method: "cod" } });
-    await new Promise(r => setTimeout(r, 600));
-    const date = new Date();
-    const code = `ORD-${date.toISOString().slice(0,10).replace(/-/g,"")}-${Math.floor(1000 + Math.random()*9000)}`;
-    setSuccess({ code, name: data.fullName, phone: normalizePhone(data.phone) });
-    track({ name: "cod_submit_success", payload: { orderCode: code, itemsCount, total } });
-    toast({ title: "Order placed", description: code });
-    // Optionally clear cart or keep items until delivery; we keep for now.
-    reset();
+
+    const orderItems = enriched.map(item => ({
+      productId: item.productId,
+      productName: item.name,
+      variantSelections: item.variantSelections,
+      qty: item.qty,
+      unitPrice: item.unitPrice,
+    }));
+
+    const result = await createOrder({
+      phone: normalizePhone(data.phone),
+      customerName: data.fullName,
+      address: `${data.address}, ${data.city}`,
+      items: orderItems,
+      totals: {
+        subtotal: subtotalMAD,
+        shipping: shipping,
+        tax: vatIncluded,
+        total: total,
+      },
+    });
+
+    if (result.success && result.orderCode) {
+      setSuccess({ code: result.orderCode, name: data.fullName, phone: normalizePhone(data.phone) });
+      track({ name: "cod_submit_success", payload: { orderCode: result.orderCode, itemsCount, total } });
+      toast({ title: "Order placed!", description: `Your order code is ${result.orderCode}` });
+      clear(); // Clear the cart
+      reset();
+    } else {
+      toast({
+        title: "Order failed",
+        description: result.error || "Could not place the order. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const buildWhatsappUrl = () => {
@@ -184,6 +214,14 @@ export default function Cart() {
   };
 
   const empty = itemsCount === 0;
+
+  if (productsLoading) {
+    return (
+      <main className="container mx-auto px-4 py-4 text-center">
+        Loading cart items...
+      </main>
+    );
+  }
 
   return (
     <main className="container mx-auto px-4 py-4">
@@ -341,7 +379,9 @@ export default function Cart() {
                 {errors.consent && <span className="text-xs text-destructive">{errors.consent.message as string}</span>}
 
                 <div className="grid sm:grid-cols-2 gap-2">
-                  <Button type="submit" variant="hero" disabled={isSubmitting}>Checkout (COD)</Button>
+                  <Button type="submit" variant="hero" disabled={isCreatingOrder}>
+                    {isCreatingOrder ? "Placing Order..." : "Checkout (COD)"}
+                  </Button>
                   <Button type="button" variant="outline" onClick={()=>{
                     const url = buildWhatsappUrl();
                     window.open(url, "_blank");
