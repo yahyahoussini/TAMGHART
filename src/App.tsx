@@ -19,6 +19,8 @@ import Orders from "@/pages/admin/Orders";
 import ProductEdit from "@/pages/admin/ProductEdit";
 import Promos from "@/pages/admin/Promos";
 import PromoEdit from "@/pages/admin/PromoEdit";
+import Customers from "@/pages/admin/Customers";
+import CustomerDetail from "@/pages/admin/CustomerDetail";
 
 const queryClient = new QueryClient();
 
@@ -40,7 +42,8 @@ const App = () => (
             <Route path="promos" element={<Promos />} />
             <Route path="promos/new" element={<PromoEdit />} />
             <Route path="promos/:id/edit" element={<PromoEdit />} />
-            <Route path="customers" element={<div className="p-8 text-center">Customers management coming soon...</div>} />
+            <Route path="customers" element={<Customers />} />
+            <Route path="customers/:id" element={<CustomerDetail />} />
             <Route path="analytics" element={<div className="p-8 text-center">Analytics dashboard coming soon...</div>} />
             <Route path="settings" element={<div className="p-8 text-center">Admin settings coming soon...</div>} />
           </Route>

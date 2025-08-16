@@ -18,10 +18,36 @@ serve(async (req) => {
 
     const { orderData } = await req.json();
 
-    // 1. Create the order
+    // 1. Find or create a customer
+    let customerId;
+    const { data: existingCustomer } = await supabase
+      .from("customers")
+      .select("id")
+      .or(`email.eq.${orderData.email},phone.eq.${orderData.phone}`)
+      .single();
+
+    if (existingCustomer) {
+      customerId = existingCustomer.id;
+    } else {
+      const { data: newCustomer, error: customerError } = await supabase
+        .from("customers")
+        .insert({
+          full_name: orderData.customerName,
+          email: orderData.email,
+          phone: orderData.phone,
+        })
+        .select("id")
+        .single();
+
+      if (customerError) throw customerError;
+      customerId = newCustomer.id;
+    }
+
+    // 2. Create the order
     const { data: order, error: orderError } = await supabase
       .from("orders")
       .insert({
+        customer_id: customerId,
         phone: orderData.phone,
         email: orderData.email,
         customer_name: orderData.customerName,

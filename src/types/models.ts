@@ -16,3 +16,10 @@ export type Promo = {
   min_purchase_amount: number;
   is_active: boolean;
 };
+export type Customer = {
+  id: string;
+  full_name: string;
+  email: string;
+  phone: string;
+  created_at: string;
+};
