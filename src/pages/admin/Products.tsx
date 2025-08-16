@@ -158,7 +158,7 @@ export default function Products() {
                         <Badge 
                           variant={product.inStock ? "default" : "destructive"}
                         >
-                          {product.inStock ? "In Stock" : "Out of Stock"}
+                          {product.inStock ? `${product.quantity} in Stock` : "Out of Stock"}
                         </Badge>
                       </TableCell>
                       <TableCell>

@@ -105,7 +105,7 @@ const Product = () => {
 
   const price = `${product.price} MAD`;
 
-  const canAdd = product.variants ? product.variants.every(v => selections[v.id]) : true;
+  const canAdd = (product.variants ? product.variants.every(v => selections[v.id]) : true) && product.inStock;
 
   const onSelect = (groupId: string, option: string) => {
     setSelections(prev => ({ ...prev, [groupId]: option }));
@@ -233,7 +233,11 @@ const Product = () => {
 
           {/* Badges */}
           <div className="mt-3 flex flex-wrap gap-2">
-            <Badge variant="secondary" className="rounded-pill"><CheckCircle2 className="mr-1" size={14}/> En Stock</Badge>
+            {product.inStock ? (
+              <Badge variant="secondary" className="rounded-pill"><CheckCircle2 className="mr-1" size={14}/> En Stock ({product.quantity})</Badge>
+            ) : (
+              <Badge variant="destructive" className="rounded-pill">Épuisé</Badge>
+            )}
             {product.tags.includes("végan") && (
               <Badge variant="secondary" className="rounded-pill"><Leaf className="mr-1" size={14}/> Végan</Badge>
             )}
@@ -265,9 +269,10 @@ const Product = () => {
             <div className="text-sm font-medium mb-2">Quantité</div>
             <div className="flex items-center gap-2">
               <Button variant="outline" size="icon" aria-label="Diminuer" onClick={() => setQty(q => Math.max(1, q - 1))}><Minus/></Button>
-              <Input className="w-16 text-center" value={qty} onChange={e => setQty(Math.max(1, parseInt(e.target.value || '1')))} aria-label="Quantité" />
-              <Button variant="outline" size="icon" aria-label="Augmenter" onClick={() => setQty(q => q + 1)}><Plus/></Button>
+              <Input className="w-16 text-center" value={qty} onChange={e => setQty(Math.max(1, Math.min(product.quantity, parseInt(e.target.value || '1'))))} aria-label="Quantité" />
+              <Button variant="outline" size="icon" aria-label="Augmenter" onClick={() => setQty(q => Math.min(product.quantity, q + 1))}><Plus/></Button>
             </div>
+            {product.quantity > 0 && <p className="text-xs text-muted-foreground mt-1">{product.quantity} disponibles</p>}
           </div>
 
           {/* Primary actions */}

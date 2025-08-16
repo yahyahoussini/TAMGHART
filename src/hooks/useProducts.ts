@@ -18,7 +18,6 @@ export function useProducts() {
       const { data, error } = await supabase
         .from('products')
         .select('*')
-        .eq('in_stock', true)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -37,7 +36,8 @@ export function useProducts() {
         specs: item.specs || [],
         tags: item.tags || [],
         volume: item.volume || undefined,
-        inStock: item.in_stock || false,
+        quantity: item.quantity || 0,
+        inStock: (item.quantity || 0) > 0,
       }));
 
       setProducts(transformedProducts);
@@ -115,7 +115,8 @@ export function useProduct(slug: string) {
         specs: data.specs || [],
         tags: data.tags || [],
         volume: data.volume || undefined,
-        inStock: data.in_stock || false,
+        quantity: data.quantity || 0,
+        inStock: (data.quantity || 0) > 0,
       };
 
       setProduct(transformedProduct);

@@ -67,11 +67,12 @@ export default function Dashboard() {
 
       const totalRevenue = revenueData?.reduce((sum, order) => sum + parseFloat(order.total.toString()), 0) || 0;
 
-      // Fetch low stock products (mock data for now)
+      // Fetch low stock products
       const { data: products } = await supabase
         .from('products')
         .select('*')
-        .eq('in_stock', false)
+        .lt('quantity', 10)
+        .order('quantity', { ascending: true })
         .limit(5);
 
       setStats({
@@ -240,11 +241,15 @@ export default function Dashboard() {
                   <div key={product.id} className="flex items-center justify-between">
                     <div>
                       <p className="font-medium">{product.name}</p>
-                      <Badge variant="destructive">Out of Stock</Badge>
+                      <Badge variant={product.quantity === 0 ? "destructive" : "default"}>
+                        {product.quantity} remaining
+                      </Badge>
                     </div>
-                    <Button variant="outline" size="sm">
-                      Restock
-                    </Button>
+                    <Link to={`/admin/products/${product.slug}/edit`}>
+                      <Button variant="outline" size="sm">
+                        Restock
+                      </Button>
+                    </Link>
                   </div>
                 ))}
               </div>

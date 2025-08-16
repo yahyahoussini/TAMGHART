@@ -13,6 +13,7 @@ const productSchema = z.object({
   slug: z.string().min(2, "Slug must be at least 2 characters."),
   description: z.string().min(10, "Description must be at least 10 characters."),
   price: z.coerce.number().min(0, "Price must be a positive number."),
+  quantity: z.coerce.number().min(0, "Quantity must be a positive number.").default(10),
   in_stock: z.boolean().default(true),
   tags: z.string().transform(val => val.split(',').map(t => t.trim()).filter(Boolean)),
 });
@@ -20,7 +21,7 @@ const productSchema = z.object({
 type ProductFormValues = z.infer<typeof productSchema>;
 
 interface ProductFormProps {
-  initialData?: Product | null;
+  initialData?: (Product & { quantity?: number }) | null;
   onSubmit: (data: ProductFormValues) => void;
   isSubmitting: boolean;
 }
@@ -33,6 +34,7 @@ export default function ProductForm({ initialData, onSubmit, isSubmitting }: Pro
       slug: initialData?.slug || "",
       description: initialData?.description || "",
       price: initialData?.price || 0,
+      quantity: initialData?.quantity || 10,
       in_stock: initialData?.inStock ?? true,
       tags: initialData?.tags?.join(", ") || "",
     },
@@ -88,6 +90,19 @@ export default function ProductForm({ initialData, onSubmit, isSubmitting }: Pro
               <FormLabel>Price (in MAD)</FormLabel>
               <FormControl>
                 <Input type="number" step="0.01" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="quantity"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Quantity</FormLabel>
+              <FormControl>
+                <Input type="number" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

@@ -14,7 +14,7 @@ export default function ProductEdit() {
   const { createProduct, updateProduct } = useProducts();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = async (formData: Omit<Product, 'id' | 'currency' | 'images' | 'variants' | 'specs' | 'volume'>) => {
+  const handleSubmit = async (formData: Omit<Product, 'id' | 'currency' | 'images' | 'variants' | 'specs' | 'volume'> & { quantity: number }) => {
     setIsSubmitting(true);
     try {
       const dataToSave: Omit<Product, 'id' | 'currency'> = {
@@ -24,6 +24,7 @@ export default function ProductEdit() {
         variants: initialData?.variants || undefined,
         specs: initialData?.specs || undefined,
         volume: initialData?.volume || undefined,
+        quantity: formData.quantity,
       };
 
       if (slug && initialData) {

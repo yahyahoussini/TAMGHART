@@ -68,8 +68,13 @@ export default function Cart() {
       slug: p?.slug || "",
       image: p?.images?.[0] || "/placeholder.svg",
       inStock: p?.inStock ?? true,
+      availableQuantity: p?.quantity ?? 0,
     };
   }), [items, products]);
+
+  const isCartInvalid = useMemo(() => {
+    return enriched.some(item => item.qty > item.availableQuantity);
+  }, [enriched]);
 
   useEffect(() => {
     document.title = "Cart — Coco Bloom";
@@ -296,8 +301,12 @@ export default function Cart() {
                     </div>
                   </div>
                 </div>
-                {!it.inStock && (
+                {!it.inStock ? (
                   <div className="mt-2 text-xs text-destructive">Out of stock</div>
+                ) : it.qty > it.availableQuantity && (
+                  <div className="mt-2 text-xs text-destructive">
+                    Only {it.availableQuantity} available in stock.
+                  </div>
                 )}
               </article>
             ))}
@@ -379,7 +388,7 @@ export default function Cart() {
                 {errors.consent && <span className="text-xs text-destructive">{errors.consent.message as string}</span>}
 
                 <div className="grid sm:grid-cols-2 gap-2">
-                  <Button type="submit" variant="hero" disabled={isCreatingOrder}>
+                  <Button type="submit" variant="hero" disabled={isCreatingOrder || isCartInvalid}>
                     {isCreatingOrder ? "Placing Order..." : "Checkout (COD)"}
                   </Button>
                   <Button type="button" variant="outline" onClick={()=>{
@@ -398,10 +407,12 @@ export default function Cart() {
         <div className="fixed inset-x-0 bottom-0 z-20 border-t bg-background/90 backdrop-blur md:hidden">
           <div className="container mx-auto px-4 py-3 flex items-center gap-3">
             <div className="text-lg font-semibold mr-auto">{formatMAD(total)}</div>
-            <Button variant="hero" onClick={()=>{
+            <Button variant="hero" disabled={isCreatingOrder || isCartInvalid} onClick={()=>{
               const form = document.querySelector("form");
               (form as HTMLFormElement | null)?.requestSubmit();
-            }}>Checkout</Button>
+            }}>
+              {isCreatingOrder ? "Placing..." : "Checkout"}
+            </Button>
           </div>
         </div>
       )}
