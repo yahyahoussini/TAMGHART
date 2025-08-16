@@ -48,7 +48,35 @@ export function useProducts() {
     }
   }
 
-  return { products, loading, error, refetch: fetchProducts };
+  async function createProduct(productData: Omit<Product, 'id' | 'currency'>) {
+    const { data, error } = await supabase
+      .from('products')
+      .insert([productData])
+      .select();
+    if (error) throw error;
+    return data;
+  }
+
+  async function updateProduct(productId: string, productData: Partial<Product>) {
+    const { data, error } = await supabase
+      .from('products')
+      .update(productData)
+      .eq('id', productId)
+      .select();
+    if (error) throw error;
+    return data;
+  }
+
+  async function deleteProduct(productId: string) {
+    const { error } = await supabase
+      .from('products')
+      .delete()
+      .eq('id', productId);
+    if (error) throw error;
+    setProducts(products.filter(p => p.id !== productId));
+  }
+
+  return { products, loading, error, refetch: fetchProducts, createProduct, updateProduct, deleteProduct };
 }
 
 export function useProduct(slug: string) {

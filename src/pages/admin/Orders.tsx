@@ -4,7 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import { Search, Eye, Edit } from "lucide-react";
+import { Search, Eye, Edit, Package } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   Table,
   TableBody,
@@ -20,6 +27,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+
+interface OrderItem {
+  id: string;
+  product_name: string;
+  quantity: number;
+  unit_price: number;
+  total_price: number;
+}
 
 interface Order {
   id: string;
@@ -35,6 +51,54 @@ interface Order {
   total: number;
   created_at: string;
   updated_at: string;
+  order_items: OrderItem[];
+}
+
+function OrderDetailsDialog({ order }: { order: Order }) {
+  return (
+    <DialogContent className="max-w-3xl">
+      <DialogHeader>
+        <DialogTitle>Order Details: #{order.code}</DialogTitle>
+      </DialogHeader>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
+        <div>
+          <h3 className="font-semibold mb-2">Customer Info</h3>
+          <p><strong>Name:</strong> {order.customer_name}</p>
+          <p><strong>Phone:</strong> {order.phone}</p>
+          <p><strong>Email:</strong> {order.email || 'N/A'}</p>
+          <p><strong>Address:</strong> {order.address}</p>
+        </div>
+        <div>
+          <h3 className="font-semibold mb-2">Order Summary</h3>
+          <p><strong>Status:</strong> <Badge>{order.status}</Badge></p>
+          <p><strong>Subtotal:</strong> {order.subtotal.toFixed(2)} MAD</p>
+          <p><strong>Shipping:</strong> {order.shipping.toFixed(2)} MAD</p>
+          <p><strong>Total:</strong> {order.total.toFixed(2)} MAD</p>
+        </div>
+      </div>
+      <div>
+        <h3 className="font-semibold mb-2">Items Ordered</h3>
+        <div className="space-y-2">
+          {order.order_items.map(item => (
+            <div key={item.id} className="flex items-center justify-between p-2 rounded-md border">
+              <div className="flex items-center gap-3">
+                <div className="bg-secondary p-2 rounded-md">
+                  <Package className="h-5 w-5 text-muted-foreground" />
+                </div>
+                <div>
+                  <p className="font-medium">{item.product_name}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {item.quantity} x {item.unit_price.toFixed(2)} MAD
+                  </p>
+                </div>
+              </div>
+              <p className="font-semibold">{item.total_price.toFixed(2)} MAD</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </DialogContent>
+  );
 }
 
 export default function Orders() {
@@ -42,6 +106,7 @@ export default function Orders() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   useEffect(() => {
     fetchOrders();
@@ -51,7 +116,7 @@ export default function Orders() {
     try {
       const { data, error } = await supabase
         .from('orders')
-        .select('*')
+        .select('*, order_items(*)')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -229,9 +294,14 @@ export default function Orders() {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center space-x-2">
-                          <Button variant="ghost" size="sm">
-                            <Eye className="h-4 w-4" />
-                          </Button>
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button variant="ghost" size="sm" onClick={() => setSelectedOrder(order)}>
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            </DialogTrigger>
+                            {selectedOrder && <OrderDetailsDialog order={selectedOrder} />}
+                          </Dialog>
                           <Button variant="ghost" size="sm">
                             <Edit className="h-4 w-4" />
                           </Button>

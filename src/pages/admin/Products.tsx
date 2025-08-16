@@ -1,10 +1,23 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useProducts } from "@/hooks/useProducts";
 import { Plus, Search, Edit, Trash2, Eye } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { toast } from "@/hooks/use-toast";
 import {
   Table,
   TableBody,
@@ -15,9 +28,22 @@ import {
 } from "@/components/ui/table";
 
 export default function Products() {
-  const { products, loading, error } = useProducts();
+  const { products, loading, error, deleteProduct } = useProducts();
   const [search, setSearch] = useState("");
   const [filteredProducts, setFilteredProducts] = useState(products);
+
+  const handleDelete = async (productId: string) => {
+    try {
+      await deleteProduct(productId);
+      toast({ title: "Success", description: "Product deleted successfully." });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete product. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   useEffect(() => {
     if (search) {
@@ -65,10 +91,12 @@ export default function Products() {
             Manage your product catalog
           </p>
         </div>
-        <Button>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Product
-        </Button>
+        <Link to="/admin/products/new">
+          <Button>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Product
+          </Button>
+        </Link>
       </div>
 
       <Card>
@@ -149,15 +177,37 @@ export default function Products() {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center space-x-2">
-                          <Button variant="ghost" size="sm">
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <Link to={`/product/${product.slug}`} target="_blank">
+                            <Button variant="ghost" size="sm">
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </Link>
+                          <Link to={`/admin/products/${product.slug}/edit`}>
+                            <Button variant="ghost" size="sm">
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          </Link>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="sm">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This action cannot be undone. This will permanently delete the product.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDelete(product.id)}>
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </div>
                       </TableCell>
                     </TableRow>
