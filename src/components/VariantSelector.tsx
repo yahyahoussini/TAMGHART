@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 import type { Product } from "@/types/models";
@@ -43,6 +43,9 @@ const VariantSelector = ({ product, open, onOpenChange }: Props) => {
       <SheetContent side="bottom" className="rounded-t-[--radius-modal]">
         <SheetHeader>
           <SheetTitle>Sélectionner les options</SheetTitle>
+          <SheetDescription>
+            Choisissez les options pour {product.name} et ajoutez au panier.
+          </SheetDescription>
         </SheetHeader>
         <div className="mt-4 space-y-6">
           {product.variants?.map(v => (

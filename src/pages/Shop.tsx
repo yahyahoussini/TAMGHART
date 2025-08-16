@@ -51,7 +51,7 @@ const Shop = () => {
       default: break; // best = default order
     }
     return list;
-  }, [filters, q]);
+  }, [allProducts, filters, q]);
 
   const activeCount = [
     filters.category ? 1 : 0,
